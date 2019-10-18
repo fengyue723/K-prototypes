@@ -2,7 +2,7 @@ import sklearn
 import numpy as np
 import time, sys
 import matplotlib.pyplot as plt
-import pickle
+import pickle, json
 
 from sklearn.cluster import KMeans  # K-means
 from sklearn import metrics
@@ -14,7 +14,7 @@ class pipeline:
 
     def __init__(self):
         self.data_cleaned = 'data_cleaned.csv'
-        self.cluster_result = 'cluster_result.csv'
+        self.cluster_result = 'cluster_result.tsv'
         self.data_processed = 'data_processed_file'
         self.label_file = 'label_file'
         self.result_binary = 'result_binary_file'
@@ -53,9 +53,9 @@ class pipeline:
 
         def process_crv2(x):
             if str(x) == 'nan':
-                return crv_mean/crv_max
+                return temp_mean/temp_max
             else:
-                return x/crv_max
+                return x/temp_max
 
     
         
@@ -73,31 +73,49 @@ class pipeline:
         room_space_quality = np.array(list(map(process_quality, self.dataset[:, 2])))
         print("data type of space quality:", type(room_space_quality[0]))
 
-        #4. CRV_rate as numerical value. NA as mean, softmax normalisation
-        room_crv_rate = list(map(process_crv, self.dataset[:, 3]))
-        crv_max = np.max([v for v in room_crv_rate if str(v) != 'nan'])
-        crv_mean = np.mean([v for v in room_crv_rate if str(v) != 'nan'])
-        room_crv_rate = np.array(list(map(process_crv2, room_crv_rate)))
-        print("data type of Room capacity:", type(room_crv_rate[0]))
+        #4. Room Area as numerical value. softmax normalisation
+        room_area = list(map(process_crv, self.dataset[:, 3]))
+        rm_max = np.max([v for v in room_area if str(v) != 'nan'])
+        room_area = np.array(list(map(lambda x:x/rm_max, room_area)))
+        print("data type of room area:", type(room_area[0]))
 
-        #5. Assessment Condition Rating remains as float, NA as mean, softmax normalisation
-        room_assessment_condition_rating = list(map(process_crv, self.dataset[:, 4]))
-        crv_max = np.max([v for v in room_assessment_condition_rating if str(v) != 'nan'])
-        crv_mean = np.mean([v for v in room_assessment_condition_rating if str(v) != 'nan'])
+        #5. RIV_rate as numerical value. NA as mean, softmax normalisation
+        room_riv_rate = list(map(process_crv, self.dataset[:, 4]))
+        temp_max = np.max([v for v in room_riv_rate if str(v) != 'nan'])
+        temp_mean = np.mean([v for v in room_riv_rate if str(v) != 'nan'])
+        room_riv_rate = np.array(list(map(process_crv2, room_riv_rate)))
+        print("data type of RIV_rate:", type(room_riv_rate[0]))
+
+        #6. room age as numerical value. NA as mean, softmax normalisation
+        room_age = list(map(process_crv, self.dataset[:, 5]))
+        temp_max = np.max([v for v in room_age if str(v) != 'nan'])
+        temp_mean = np.mean([v for v in room_age if str(v) != 'nan'])
+        room_age = np.array(list(map(process_crv2, room_age)))
+        print("data type of room_age:", type(room_age[0]))
+
+        #7. Assessment Condition Rating remains as float, NA as mean, softmax normalisation
+        room_assessment_condition_rating = list(map(process_crv, self.dataset[:, 6]))
+        temp_max = np.max([v for v in room_assessment_condition_rating if str(v) != 'nan'])
+        temp_mean = np.mean([v for v in room_assessment_condition_rating if str(v) != 'nan'])
         room_assessment_condition_rating = np.array(list(map(process_crv2, room_assessment_condition_rating)))
         print("data type of Room Assessment Condition Rating:", type(room_assessment_condition_rating[0]))
 
         # merge all features
-        self.dataset = np.column_stack((room_capacity, room_category, room_space_quality, room_crv_rate, room_assessment_condition_rating))
+        self.dataset = np.column_stack((room_capacity, room_category, room_space_quality, room_area, \
+            room_riv_rate, room_age, room_assessment_condition_rating))
         self.dataset[:, 0] = self.dataset[:, 0].astype(float)
         self.dataset[:, 2] = self.dataset[:, 2].astype(int)
         self.dataset[:, 3] = self.dataset[:, 3].astype(float)
         self.dataset[:, 4] = self.dataset[:, 4].astype(float)
+        self.dataset[:, 5] = self.dataset[:, 5].astype(float)
+        self.dataset[:, 6] = self.dataset[:, 6].astype(float)
 
 
         print(self.dataset)
-        print(type(self.dataset[1][0]), type(self.dataset[1][1]), type(self.dataset[1][2]), type(self.dataset[1][3]), type(self.dataset[1][4]))
-        print(self.dataset[:, 0].dtype, self.dataset[:, 1].dtype, self.dataset[:, 2].dtype, self.dataset[:, 3].dtype, self.dataset[:, 4].dtype)
+        print(type(self.dataset[1][0]), type(self.dataset[1][1]), type(self.dataset[1][2]), \
+            type(self.dataset[1][3]), type(self.dataset[1][4]), type(self.dataset[1][5]), type(self.dataset[1][6]))
+        print(self.dataset[:, 0].dtype, self.dataset[:, 1].dtype, self.dataset[:, 2].dtype, \
+            self.dataset[:, 3].dtype, self.dataset[:, 4].dtype, self.dataset[:, 5].dtype, self.dataset[:, 6].dtype)
 
         with open(self.data_processed, 'wb') as f:
             pickle.dump(self.dataset, f)
@@ -118,7 +136,11 @@ class pipeline:
         # print(score)
         kproto = KPrototypes(n_clusters=5, init='Cao', verbose=2)
         clusters = kproto.fit_predict(self.dataset, categorical=[1])
-        self.result = np.column_stack((self.dataset, clusters))
+
+        temp = np.loadtxt(fname=self.data_cleaned, dtype=object, delimiter=',')
+        room_identity = temp[1:,:3]
+
+        self.result = np.column_stack((room_identity, self.dataset, clusters))
 
         print(kproto.cluster_centroids_)
         # Print training statistics
@@ -127,19 +149,37 @@ class pipeline:
 
         with open(self.result_binary, 'wb') as f:
             pickle.dump(self.result, f)
+        with open('kproto_res', 'wb') as f:
+            pickle.dump(kproto, f)
 
         with open(self.cluster_result, 'w') as f:
             re = self.result.tolist()
             for line in re:
-                f.write(",".join(list(map(str, line)))+'\n')
+                f.write("\t".join(list(map(str, line)))+'\n')
             
         for s, c in zip(self.label, clusters):
             print("Room identity: {}, cluster:{}".format(s, c))
 
-
+    def present(self):
+        with open(self.cluster_result, 'r') as f1:
+            with open(self.data_cleaned, 'r') as f2:
+                self.d = {str((x, y)):0 for x in ('Fair', 'Very Good', 'Good', 'None') for y in range(5)}
+                label = f2.readline()
+                while True:
+                    line1 = f1.readline().strip()
+                    line2 = f2.readline().strip()
+                    if not line1:
+                        break
+                    new_label = int(line1.split()[-1])
+                    old_label = line2.split(',')[5]
+                    self.d[str((old_label, new_label))] += 1
+                print(self.d)
+                with open('temp.json', 'w') as f:
+                    json.dump(self.d, f)
 
 
 pipeline = pipeline()
-# pipeline.data_load()
-# pipeline.data_process()
+pipeline.data_load()
+pipeline.data_process()
 pipeline.predict()
+pipeline.present()
