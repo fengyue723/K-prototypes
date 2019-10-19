@@ -163,7 +163,8 @@ class pipeline:
     def present(self):
         with open(self.cluster_result, 'r') as f1:
             with open(self.data_cleaned, 'r') as f2:
-                self.d = {str((x, y)):0 for x in ('Fair', 'Very Good', 'Good', 'None') for y in range(5)}
+                self.d1 = {str((x, y)):0 for x in ('Fair', 'Very Good', 'Good', 'None') for y in range(5)}
+                self.d2 = {str((y, x)):0 for y in range(5) for x in ('Fair', 'Very Good', 'Good', 'None')}
                 label = f2.readline()
                 while True:
                     line1 = f1.readline().strip()
@@ -172,14 +173,50 @@ class pipeline:
                         break
                     new_label = int(line1.split()[-1])
                     old_label = line2.split(',')[5]
-                    self.d[str((old_label, new_label))] += 1
-                print(self.d)
+                    self.d1[str((old_label, new_label))] += 1
+                    self.d2[str((new_label, old_label))] += 1
+                self.d = self.d1.copy()
+                self.d.update(self.d2)
                 with open('temp.json', 'w') as f:
                     json.dump(self.d, f)
 
+    def calculation(self):
+        with open('kproto_res', 'rb') as f:
+            kproto = pickle.load(f)
+            matrix = kproto.cluster_centroids_
+            print(matrix)
+            class_0 = matrix[0][0]
+            class_1 = matrix[0][1]
+            class_2 = matrix[0][2]
+            class_3 = matrix[0][3]
+            class_4 = matrix[0][4]
+            with open('calculation.txt', 'w') as f:
+                for array, class_type in [(class_0, 0), (class_2, 2), (class_4, 4)]:
+                    distance1 = np.sqrt(np.sum(np.square(array-class_1)))
+                    distance2 = np.sqrt(np.sum(np.square(array-class_3)))
+                    line = "class: {}, distance from Premium: {}, distance from Poor: {}".format(class_type, distance1, distance2)
+                    print(line)
+                    f.write(line+'\r')
+
+    def plot(self):
+        with open('temp.json', 'r') as f:
+            self.d = json.load(f)
+        new_d = {i:0 for i in range(5)}
+        for k, v in self.d.items():
+            if str.isdigit(k[1]):
+                new_d[int(k[1])] += v
+
+        name_list = ['Poor','Fair','Good','Very Good', 'Premium']
+        num_list = [new_d[3], new_d[2], new_d[0], new_d[4], new_d[1]]
+        plt.bar(range(len(num_list)), num_list, color='ygcmb', tick_label=name_list)
+        plt.show()
+
+
 
 pipeline = pipeline()
-pipeline.data_load()
-pipeline.data_process()
-pipeline.predict()
-pipeline.present()
+# pipeline.data_load()
+# pipeline.data_process()
+# pipeline.predict()
+# pipeline.present()
+# pipeline.calculation()
+pipeline.plot()

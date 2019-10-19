@@ -1,0 +1,1 @@
+class: 0, distance from Premium: 1.022688417907735, distance from Poor: 1.0018216115566985class: 2, distance from Premium: 1.04323084457195, distance from Poor: 1.0015781272707973class: 4, distance from Premium: 1.0136998118236367, distance from Poor: 1.0044016956217048
