@@ -28,100 +28,116 @@ class pipeline:
         print(self.dataset)
 
     def data_process(self):
-        #process 'NA' value and normalisation
-        def process_capacity(x):
+        #process 'NA' value by indicator (return (1, 0) when NA, otherwise (0, true value))
+        def process_numerical_with_indicator(x): 
             if x == 'NA':
-                return 0
+                return (1, 0)
             else:
-                return int(x)
+                return (0, float(x))
 
         def process_quality(x):
             if x == 'Very Good':
-                return 3
+                return (0, 1)
             elif x == 'Good':
-                return 2
+                return (0, 0.5)
             elif x == 'Fair':
-                return 1
+                return (0, 0)
             else:
-                return 2
+                return (1, 0)
 
-        def process_crv(x):
-            if x == 'NA':
-                return np.nan
+        def process_category(x):
+            res = [0 for _ in range(9)]
+            if x != 'NA':
+                res[int(x)] = 1
             else:
-                return float(x)
-
-        def process_crv2(x):
-            if str(x) == 'nan':
-                return temp_mean/temp_max
-            else:
-                return x/temp_max
+                res[-1] = 1
+            return res
 
     
         
-        #1. room_capacity: NA as 0, softmax normalisation
-        room_capacity = list(map(process_capacity, self.dataset[:, 0]))
-        capacity_max = np.max(room_capacity)
-        room_capacity = np.array(list(map(lambda x:x/capacity_max, room_capacity)))
-        print("data type of Room capacity:", type(room_capacity[0]))
+        #1. room_capacity: NA as a new feature, softmax normalisation
+        room_capacity_indicator, room_capacity_value = zip(*list(map(process_numerical_with_indicator, self.dataset[:, 0])))
+        capacity_max = np.max(room_capacity_value)
+        room_capacity_indicator = np.array(room_capacity_indicator)
+        room_capacity_value = np.array(list(map(lambda x:x/capacity_max, room_capacity_value)))
+        print("data type of Room capacity:", type(room_capacity_value[0]))
 
         #2. Room Category remain as str variable
-        room_category = self.dataset[:, 1]
-        print("data type of Room Category:", type(room_category[0]))
+        room_category_1, room_category_2, room_category_3, room_category_4, room_category_5, room_category_6, \
+            room_category_7, room_category_8, room_category_NA = zip(*list(map(process_category, self.dataset[:, 1])))
+        print("data type of Room Category:", type(room_category_1[0]))
 
-        #3. Space Quality as ordinal variable. 'Very Good' as 3, 'Good' as 2, 'Fair' as 1
-        room_space_quality = np.array(list(map(process_quality, self.dataset[:, 2])))
-        print("data type of space quality:", type(room_space_quality[0]))
+        #3. Space Quality as ordinal variable. 'Very Good' as 1, 'Good' as 0.5, 'Fair' as 0
+        room_space_quality_indicator, room_space_quality_value = zip(*list(map(process_quality, self.dataset[:, 2])))
+        room_space_quality_indicator = np.array(room_space_quality_indicator)
+        room_space_quality_value = np.array(room_space_quality_value)
+        print("data type of space quality:", type(room_space_quality_value[0]))
 
         #4. Room Area as numerical value. softmax normalisation
-        room_area = list(map(process_crv, self.dataset[:, 3]))
-        rm_max = np.max([v for v in room_area if str(v) != 'nan'])
-        room_area = np.array(list(map(lambda x:x/rm_max, room_area)))
-        print("data type of room area:", type(room_area[0]))
+        room_area_indicator, room_area_value = zip(*list(map(process_numerical_with_indicator, self.dataset[:, 3])))
+        temp_max = np.max(room_area_value)
+        room_area_indicator = np.array(room_area_indicator)
+        room_area_value = np.array(list(map(lambda x:x/temp_max, room_area_value)))
+        print("data type of room area:", type(room_area_value[0]))
 
-        #5. RIV_rate as numerical value. NA as mean, softmax normalisation
-        room_riv_rate = list(map(process_crv, self.dataset[:, 4]))
-        temp_max = np.max([v for v in room_riv_rate if str(v) != 'nan'])
-        temp_mean = np.mean([v for v in room_riv_rate if str(v) != 'nan'])
-        room_riv_rate = np.array(list(map(process_crv2, room_riv_rate)))
-        print("data type of RIV_rate:", type(room_riv_rate[0]))
+        #5. RIV_rate as numerical value. softmax normalisation
+        room_riv_rate_indicator, room_riv_rate_value = zip(*list(map(process_numerical_with_indicator, self.dataset[:, 4])))
+        temp_max = np.max(room_riv_rate_value)
+        room_riv_rate_indicator = np.array(room_riv_rate_indicator)
+        room_riv_rate_value = np.array(list(map(lambda x:x/temp_max, room_riv_rate_value)))
+        print("data type of RIV_rate:", type(room_riv_rate_value[0]))
 
         #6. room age as numerical value. NA as mean, softmax normalisation
-        room_age = list(map(process_crv, self.dataset[:, 5]))
-        temp_max = np.max([v for v in room_age if str(v) != 'nan'])
-        temp_mean = np.mean([v for v in room_age if str(v) != 'nan'])
-        room_age = np.array(list(map(process_crv2, room_age)))
-        print("data type of room_age:", type(room_age[0]))
+        room_age_indicator, room_age_value = zip(*list(map(process_numerical_with_indicator, self.dataset[:, 5])))
+        temp_max = np.max(room_age_value)
+        room_age_indicator = np.array(room_age_indicator)
+        room_age_value = np.array(list(map(lambda x:x/temp_max, room_age_value)))
+        print("data type of room_age:", type(room_age_value[0]))
 
         #7. Assessment Condition Rating remains as float, NA as mean, softmax normalisation
-        room_assessment_condition_rating = list(map(process_crv, self.dataset[:, 6]))
-        temp_max = np.max([v for v in room_assessment_condition_rating if str(v) != 'nan'])
-        temp_mean = np.mean([v for v in room_assessment_condition_rating if str(v) != 'nan'])
-        room_assessment_condition_rating = np.array(list(map(process_crv2, room_assessment_condition_rating)))
-        print("data type of Room Assessment Condition Rating:", type(room_assessment_condition_rating[0]))
+        room_assessment_condition_rating_indicator, room_assessment_condition_rating_value = zip(*list(map(process_numerical_with_indicator, self.dataset[:, 5])))
+        temp_max = np.max(room_assessment_condition_rating_value)
+        room_assessment_condition_rating_indicator = np.array(room_assessment_condition_rating_indicator)
+        room_assessment_condition_rating_value = np.array(list(map(lambda x:x/temp_max, room_assessment_condition_rating_value)))
+        print("data type of Room Assessment Condition Rating:", type(room_assessment_condition_rating_value[0]))
 
         # merge all features
-        self.dataset = np.column_stack((room_capacity, room_category, room_space_quality, room_area, \
-            room_riv_rate, room_age, room_assessment_condition_rating))
-        self.dataset[:, 0] = self.dataset[:, 0].astype(float)
-        self.dataset[:, 2] = self.dataset[:, 2].astype(int)
-        self.dataset[:, 3] = self.dataset[:, 3].astype(float)
-        self.dataset[:, 4] = self.dataset[:, 4].astype(float)
-        self.dataset[:, 5] = self.dataset[:, 5].astype(float)
-        self.dataset[:, 6] = self.dataset[:, 6].astype(float)
+        self.dataset = np.column_stack((room_capacity_indicator, room_capacity_value, room_category_1,\
+             room_category_2, room_category_3, room_category_4, room_category_5, room_category_6, \
+            room_category_7, room_category_8, room_category_NA,\
+            room_area_indicator, room_area_value, room_riv_rate_indicator, room_riv_rate_value,\
+            room_age_indicator, room_age_value, room_assessment_condition_rating_indicator, \
+                room_assessment_condition_rating_value, room_space_quality_indicator, room_space_quality_value))
+        self.dataset[:] = self.dataset[:].astype(float)
 
 
         print(self.dataset)
-        print(type(self.dataset[1][0]), type(self.dataset[1][1]), type(self.dataset[1][2]), \
-            type(self.dataset[1][3]), type(self.dataset[1][4]), type(self.dataset[1][5]), type(self.dataset[1][6]))
-        print(self.dataset[:, 0].dtype, self.dataset[:, 1].dtype, self.dataset[:, 2].dtype, \
-            self.dataset[:, 3].dtype, self.dataset[:, 4].dtype, self.dataset[:, 5].dtype, self.dataset[:, 6].dtype)
 
-        with open(self.data_processed, 'wb') as f:
-            pickle.dump(self.dataset, f)
+        temp = np.loadtxt(fname=self.data_cleaned, dtype=object, delimiter=',')
+        room_identity = temp[1:,:3]
 
-        with open(self.label_file, 'wb') as f:
-            pickle.dump(self.label, f)
+        self.new_training_set = np.column_stack((room_identity, self.dataset))
+        title = ['No.', 'Building Code','Room Code', 'room_capacity_indicator', 'room_capacity_value',\
+            'room_category_1', 'room_category_2', 'room_category_3', 'room_category_4', 'room_category_5', \
+            'room_category_6', 'room_category_7', 'room_category_8', 'room_category_NA', \
+            'room_area_indicator', 'room_area_value', 'room_riv_rate_indicator', 'room_riv_rate_value',\
+            'room_age_indicator', 'room_age_value', 'room_assessment_condition_rating_indicator', \
+            'room_assessment_condition_rating_value', 'room_space_quality_indicator', 'room_space_quality_value']
+
+        self.new_training_set = np.row_stack((title, self.new_training_set))
+
+        #np.savetxt('new_training_set.csv', self.new_training_set, delimiter=',')
+
+        with open('new_training_set.csv', 'w') as f:
+            re = self.new_training_set.tolist()
+            for line in re:
+                f.write(",".join(list(map(str, line)))+'\n')
+
+        # with open(self.data_processed, 'wb') as f:
+        #     pickle.dump(self.dataset, f)
+
+        # with open(self.label_file, 'wb') as f:
+        #     pickle.dump(self.label, f)
         
 
     def predict(self):
@@ -214,9 +230,9 @@ class pipeline:
 
 
 pipeline = pipeline()
-# pipeline.data_load()
-# pipeline.data_process()
+pipeline.data_load()
+pipeline.data_process()
 # pipeline.predict()
 # pipeline.present()
 # pipeline.calculation()
-pipeline.plot()
+# pipeline.plot()
