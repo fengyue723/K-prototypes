@@ -48,7 +48,7 @@ class pipeline:
         def process_category(x):
             res = [0 for _ in range(9)]
             if x != 'NA':
-                res[int(x)] = 1
+                res[int(x)-1] = 1
             else:
                 res[-1] = 1
             return res
