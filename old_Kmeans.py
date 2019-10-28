@@ -177,7 +177,7 @@ class pipeline:
                     self.d2[str((new_label, old_label))] += 1
                 self.d = self.d1.copy()
                 self.d.update(self.d2)
-                with open('temp.json', 'w') as f:
+                with open('kmeans_stat.json', 'w') as f:
                     json.dump(self.d, f)
 
     def calculation(self):
@@ -199,7 +199,7 @@ class pipeline:
                     f.write(line+'\r')
 
     def plot(self):
-        with open('temp.json', 'r') as f:
+        with open('kmeans_stat.json', 'r') as f:
             self.d = json.load(f)
         new_d = {i:0 for i in range(5)}
         for k, v in self.d.items():
