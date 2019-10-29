@@ -3,6 +3,8 @@ import pickle, json
 import time
 import matplotlib.pyplot as plt
 from sklearn.linear_model.logistic import LogisticRegression
+from sklearn.model_selection import train_test_split
+from sklearn import metrics
 np.random.seed(870963)
 
 class pipeline:
@@ -23,6 +25,18 @@ class pipeline:
         print(np.shape(self.training_set))
         print(np.shape(self.training_set_x))
         print(np.shape(self.training_set_y))
+
+    def train_and_evaluate(self):
+        self.classifier = LogisticRegression(solver='newton-cg', multi_class='multinomial')
+        X_train, X_test, y_train, y_test = train_test_split(self.training_set_x, self.training_set_y, test_size=0.2)
+        begin = time.time()
+        print("Begin fitting...")
+        self.classifier.fit(X_train, y_train)
+        print("Model learned. Time used: {:.2f} s".format(time.time()-begin))
+        y_pred = self.classifier.predict(X_train)
+        print("Train_ccuracy : %.4g" % metrics.accuracy_score(y_train, y_pred))
+        y_pred = self.classifier.predict(X_test)
+        print("Test_ccuracy : %.4g" % metrics.accuracy_score(y_test, y_pred))
 
     def learning(self):
         self.classifier = LogisticRegression(solver='newton-cg', multi_class='multinomial')
@@ -109,5 +123,6 @@ class pipeline:
 pipeline = pipeline()
 pipeline.data_load()
 # pipeline.learning()
-pipeline.predict()
-pipeline.plot()
+pipeline.train_and_evaluate()
+# pipeline.predict()
+# pipeline.plot()
