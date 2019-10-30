@@ -2,47 +2,47 @@ import numpy as np
 import pickle, json
 import time
 import matplotlib.pyplot as plt
+import xgboost as xgb
+from xgboost import XGBClassifier
+from xgboost import XGBRegressor
+from xgboost import plot_importance
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model.logistic import LogisticRegression
-from sklearn.svm import SVC
 from sklearn.model_selection import train_test_split
 from sklearn import metrics
 np.random.seed(870963)
 
 class pipeline:
     def __init__(self):
-        self.classifier = LogisticRegression(solver='newton-cg', multi_class='multinomial')
-        self.classifier2 = SVC(probability=True)
         self.training_set_file = 'new_training_set.csv'
-        self.model_learned = 'lr_model_learned'
-        self.lr_reclassify_result = 'lr_reclassify_result.csv'
-        self.lr_res_stat = 'lr_res_stat_2.json'
-        self.alpha = 0.63
-        self.beta = 0.02
+        self.model_learned = 'dt_model_learned'
+        self.lr_reclassify_result = 'dt_reclassify_result.csv'
+        self.lr_res_stat = 'dt_res_stat_2.json'
+        self.classifier = XGBRegressor()
     
     def data_load(self):
         columns = [i+3 for i in range(10)] + [i+15 for i in range(9)]
         self.original_dataset = np.loadtxt(fname=self.training_set_file, dtype=float, delimiter=',', skiprows=1, usecols=columns)
         self.training_set = np.array([row for row in self.original_dataset if row[-2]!=1])
         self.training_set_x = self.training_set[:,:-2]
-        self.training_set_y = self.training_set[:,-1].astype(str)
+        self.training_set_y = self.training_set[:,-1]#.astype(str)
         print(np.shape(self.training_set))
         print(np.shape(self.training_set_x))
         print(np.shape(self.training_set_y))
 
     def train_and_evaluate(self):
-        
         X_train, X_test, y_train, y_test = train_test_split(self.training_set_x, self.training_set_y, test_size=0.2)
         begin = time.time()
         print("Begin fitting...")
-        self.classifier2.fit(X_train, y_train)
+        self.classifier.fit(X_train, y_train)
         print("Model learned. Time used: {:.2f} s".format(time.time()-begin))
-        y_pred = self.classifier2.predict(X_train)
-        print("Train_ccuracy : %.4g" % metrics.accuracy_score(y_train, y_pred))
-        y_pred = self.classifier2.predict(X_test)
-        print("Test_ccuracy : %.4g" % metrics.accuracy_score(y_test, y_pred))
+        y_pred = self.classifier.predict(X_train)
+        print("Train_accuracy : %.4g" % metrics.mean_squared_error(y_train, y_pred))
+        y_pred = self.classifier.predict(X_test)
+        print("Test_accuracy : %.4g" % metrics.mean_squared_error(y_test, y_pred))
 
     def learning(self):
-        self.classifier = LogisticRegression(solver='newton-cg', multi_class='multinomial')
         begin = time.time()
         print("Begin fitting...")
         self.classifier.fit(self.training_set_x, self.training_set_y)
@@ -53,15 +53,7 @@ class pipeline:
     def predict(self):
         with open(self.model_learned, 'rb') as f:
             self.classifier = pickle.load(f)
-        print("classes:", self.classifier.classes_)
-        self.predict_result_prob = self.classifier.predict_proba(self.original_dataset[:,:-2])
-
         self.predict_result = self.classifier.predict(self.original_dataset[:,:-2])
-        res_stat_1 = {'0.0':0, '0.5':0, '1.0':0}
-        for res in self.predict_result:
-            res_stat_1[res] += 1
-        print(res_stat_1)
-
         original_label = self.original_dataset[:,-2:]
 
         f = open(self.lr_reclassify_result, 'w')
@@ -69,7 +61,7 @@ class pipeline:
 
         d1 = {str((x, y)):0 for x in ('Fair', 'Very Good', 'Good', 'None') for y in range(5)}
         d2 = {str((y, x)):0 for y in range(5) for x in ('Fair', 'Very Good', 'Good', 'None')}
-        for row in zip(self.predict_result_prob, original_label):
+        for row in zip(self.predict_result, original_label):
             if row[1][0] == 1:
                 old = 'None'
             elif row[1][1] == 0:
@@ -79,20 +71,17 @@ class pipeline:
             elif row[1][1] == 1:
                 old = 'Very Good'
 
-            max_p = max(row[0])
-            max_index = 2*list(row[0]).index(max_p)
-            if max_p > self.alpha:
-                new = max_index
-            elif max_index == 0:
+            p = row[0]
+            if p<0.2:
+                new = 0
+            elif p<0.4:
                 new = 1
-            elif max_index == 4:
-                new = 3
-            elif abs(row[0][0]-row[0][2])<self.beta:
+            elif p<0.6:
                 new = 2
-            elif row[0][0]>row[0][2]:
-                new = 1
-            elif row[0][0]<row[0][2]:
+            elif p<0.8:
                 new = 3
+            else:
+                new = 4
 
             f.write(old+','+str(new)+'\n')
             d1[str((old, new))] += 1
@@ -126,6 +115,6 @@ class pipeline:
 pipeline = pipeline()
 pipeline.data_load()
 # pipeline.train_and_evaluate()
-# pipeline.learning()
+pipeline.learning()
 pipeline.predict()
 pipeline.plot()
