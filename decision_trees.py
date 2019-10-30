@@ -6,6 +6,8 @@ import xgboost as xgb
 from xgboost import XGBClassifier
 from xgboost import XGBRegressor
 from xgboost import plot_importance
+from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model.logistic import LogisticRegression
@@ -19,7 +21,7 @@ class pipeline:
         self.model_learned = 'dt_model_learned'
         self.lr_reclassify_result = 'dt_reclassify_result.csv'
         self.lr_res_stat = 'dt_res_stat_2.json'
-        self.classifier = XGBRegressor()
+        self.classifier = GradientBoostingRegressor()
     
     def data_load(self):
         columns = [i+3 for i in range(10)] + [i+15 for i in range(9)]
