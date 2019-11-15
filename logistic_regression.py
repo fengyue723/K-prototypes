@@ -34,11 +34,11 @@ class pipeline:
         X_train, X_test, y_train, y_test = train_test_split(self.training_set_x, self.training_set_y, test_size=0.2)
         begin = time.time()
         print("Begin fitting...")
-        self.classifier2.fit(X_train, y_train)
+        self.classifier.fit(X_train, y_train)
         print("Model learned. Time used: {:.2f} s".format(time.time()-begin))
-        y_pred = self.classifier2.predict(X_train)
+        y_pred = self.classifier.predict(X_train)
         print("Train_ccuracy : %.4g" % metrics.accuracy_score(y_train, y_pred))
-        y_pred = self.classifier2.predict(X_test)
+        y_pred = self.classifier.predict(X_test)
         print("Test_ccuracy : %.4g" % metrics.accuracy_score(y_test, y_pred))
 
     def learning(self):
@@ -53,6 +53,7 @@ class pipeline:
     def predict(self):
         with open(self.model_learned, 'rb') as f:
             self.classifier = pickle.load(f)
+        print("parameter:", self.classifier.coef_)
         print("classes:", self.classifier.classes_)
         self.predict_result_prob = self.classifier.predict_proba(self.original_dataset[:,:-2])
 
@@ -118,14 +119,17 @@ class pipeline:
         name_list = ['Poor','Fair','Good','Very Good', 'Premium']
         num_list = [new_d[0], new_d[1], new_d[2], new_d[3], new_d[4]]
         plt.bar(range(len(num_list)), num_list, color='ygcmb', tick_label=name_list)
+        plt.title('Room Frequencies for Logistic Regression')
+        plt.xlabel('Space Quality')
+        plt.ylabel('Number of Rooms')
         plt.show()
 
 
 
 
 pipeline = pipeline()
-pipeline.data_load()
+# pipeline.data_load()
 # pipeline.train_and_evaluate()
-# pipeline.learning()
-pipeline.predict()
+# # pipeline.learning()
+# pipeline.predict()
 pipeline.plot()

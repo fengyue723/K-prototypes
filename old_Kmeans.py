@@ -209,6 +209,9 @@ class pipeline:
         name_list = ['Poor','Fair','Good','Very Good', 'Premium']
         num_list = [new_d[3], new_d[2], new_d[0], new_d[4], new_d[1]]
         plt.bar(range(len(num_list)), num_list, color='ygcmb', tick_label=name_list)
+        plt.title('Room Frequencies for K-Prototypes')
+        plt.xlabel('Space Quality')
+        plt.ylabel('Number of Rooms')
         plt.show()
 
 

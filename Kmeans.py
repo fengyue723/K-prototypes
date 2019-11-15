@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import pickle, json
 
 from sklearn.cluster import KMeans  # K-means
-from sklearn import metrics
+from sklearn import metrics, feature_selection
 from sklearn.datasets import make_blobs
 from kmodes.kmodes import KModes 
 from kmodes.kprototypes import KPrototypes
@@ -110,9 +110,6 @@ class pipeline:
                 room_assessment_condition_rating_value, room_space_quality_indicator, room_space_quality_value))
         self.dataset[:] = self.dataset[:].astype(float)
 
-
-        print(self.dataset)
-
         temp = np.loadtxt(fname=self.data_cleaned, dtype=object, delimiter=',')
         room_identity = temp[1:,:3]
 
@@ -138,7 +135,18 @@ class pipeline:
 
         # with open(self.label_file, 'wb') as f:
         #     pickle.dump(self.label, f)
-        
+
+
+    def feature_selection(self):
+        columns = [i+3 for i in range(10)] + [i+15 for i in range(9)]
+        self.original_dataset = np.loadtxt(fname='new_training_set.csv', dtype=float, delimiter=',', skiprows=1, usecols=columns)
+        self.training_set = np.array([row for row in self.original_dataset if row[-2]!=1])
+        self.training_set_x = self.training_set[:,:-2]
+        self.training_set_y = self.training_set[:,-1].astype(str)
+        print(feature_selection.chi2(self.training_set_x, self.training_set_y))
+        print(feature_selection.f_classif(self.training_set_x, self.training_set_y))
+
+
 
     def predict(self):
         with open(self.data_processed, 'rb') as f:
@@ -231,7 +239,8 @@ class pipeline:
 
 pipeline = pipeline()
 pipeline.data_load()
-pipeline.data_process()
+# pipeline.data_process()
+pipeline.feature_selection()
 # pipeline.predict()
 # pipeline.present()
 # pipeline.calculation()
